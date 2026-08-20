@@ -23,6 +23,19 @@ module "vpc" {
   }
 }
 
+module "eks" {
+  source = "../../modules/eks"
+
+  name               = var.cluster_name
+  private_subnet_ids = module.vpc.private_subnet_ids
+  vpc_id             = module.vpc.vpc_id
+
+  tags = {
+    Environment = "dev"
+    Project     = "IDP-Infra"
+  }
+}
+
 module "demo_service_ecr" {
   source = "../../modules/ecr"
 
