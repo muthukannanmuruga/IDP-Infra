@@ -22,3 +22,15 @@ module "vpc" {
     Project     = "IDP-Infra"
   }
 }
+
+module "demo_service_ecr" {
+  source = "../../modules/ecr"
+
+  repository_name = "demo-service"
+
+  tags = {
+    Environment = "dev"
+    Project     = "IDP-Infra"
+    Service     = "demo-service"
+  }
+}
