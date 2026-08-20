@@ -15,3 +15,27 @@ variable "cluster_name" {
   type        = string
   default     = "idp-dev-eks"
 }
+
+variable "node_instance_types" {
+  description = "EC2 instance types for the development EKS node group."
+  type        = list(string)
+  default     = ["t3.small"]
+}
+
+variable "node_min_size" {
+  description = "Minimum number of development EKS nodes."
+  type        = number
+  default     = 1
+}
+
+variable "node_desired_size" {
+  description = "Desired number of development EKS nodes."
+  type        = number
+  default     = 1
+}
+
+variable "node_max_size" {
+  description = "Maximum number of development EKS nodes."
+  type        = number
+  default     = 1
+}
