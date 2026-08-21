@@ -55,6 +55,10 @@ module "demo_service_ecr" {
 module "github_oidc" {
   source = "../../modules/github-oidc"
 
+  github_org        = "muthukannanmuruga"
+  github_repository = "demo-service"
+  github_branch     = "main"
+
   tags = {
     Environment = "dev"
     Project     = "IDP-Infra"

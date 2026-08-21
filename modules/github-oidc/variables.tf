@@ -10,6 +10,22 @@ variable "audience" {
   default     = "sts.amazonaws.com"
 }
 
+variable "github_org" {
+  description = "GitHub organization or user that owns the repository."
+  type        = string
+}
+
+variable "github_repository" {
+  description = "GitHub repository allowed to assume the role."
+  type        = string
+}
+
+variable "github_branch" {
+  description = "GitHub branch allowed to assume the role."
+  type        = string
+  default     = "main"
+}
+
 variable "tags" {
   description = "Additional tags applied to the OIDC provider."
   type        = map(string)
