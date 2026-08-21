@@ -51,3 +51,12 @@ module "demo_service_ecr" {
     Service     = "demo-service"
   }
 }
+
+module "github_oidc" {
+  source = "../../modules/github-oidc"
+
+  tags = {
+    Environment = "dev"
+    Project     = "IDP-Infra"
+  }
+}
