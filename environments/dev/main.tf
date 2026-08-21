@@ -57,6 +57,7 @@ module "github_oidc" {
 
   ecr_repository_arn = module.demo_service_ecr.repository_arn
   github_org         = "muthukannanmuruga"
+  github_org_id      = var.github_org_id
   github_repository  = "demo-service"
   github_branch      = "main"
 

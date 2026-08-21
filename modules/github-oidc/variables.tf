@@ -15,6 +15,11 @@ variable "github_org" {
   type        = string
 }
 
+variable "github_org_id" {
+  description = "Numeric GitHub organization ID included in the Actions OIDC subject."
+  type        = string
+}
+
 variable "github_repository" {
   description = "GitHub repository allowed to assume the role."
   type        = string

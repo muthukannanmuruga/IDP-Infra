@@ -16,6 +16,11 @@ variable "cluster_name" {
   default     = "idp-dev-eks"
 }
 
+variable "github_org_id" {
+  description = "Numeric GitHub organization ID used by GitHub Actions OIDC."
+  type        = string
+}
+
 variable "node_instance_types" {
   description = "EC2 instance types for the development EKS node group."
   type        = list(string)
