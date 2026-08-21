@@ -53,6 +53,10 @@ resource "aws_security_group" "nodes" {
   description = "Security group for EKS managed nodes."
   vpc_id      = var.vpc_id
 
+  lifecycle {
+    ignore_changes = [ingress]
+  }
+
   ingress {
     description = "Allow node-to-node communication."
     protocol    = "-1"
