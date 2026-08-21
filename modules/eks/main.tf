@@ -53,10 +53,6 @@ resource "aws_security_group" "nodes" {
   description = "Security group for EKS managed nodes."
   vpc_id      = var.vpc_id
 
-  lifecycle {
-    ignore_changes = [ingress]
-  }
-
   ingress {
     description = "Allow node-to-node communication."
     protocol    = "-1"
@@ -163,6 +159,19 @@ resource "aws_iam_role_policy_attachment" "node_ecr" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
+resource "aws_launch_template" "nodes" {
+  name_prefix = "${var.name}-nodes-"
+
+  vpc_security_group_ids = [aws_security_group.nodes.id]
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = merge(local.common_tags, {
+      Name = local.node_group_name
+    })
+  }
+}
+
 resource "aws_eks_node_group" "this" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = local.node_group_name
@@ -171,6 +180,11 @@ resource "aws_eks_node_group" "this" {
   version         = var.kubernetes_version
 
   instance_types = var.node_instance_types
+
+  launch_template {
+    id      = aws_launch_template.nodes.id
+    version = aws_launch_template.nodes.latest_version
+  }
 
   scaling_config {
     desired_size = var.node_desired_size
@@ -189,7 +203,8 @@ resource "aws_eks_node_group" "this" {
   depends_on = [
     aws_iam_role_policy_attachment.node_worker,
     aws_iam_role_policy_attachment.node_cni,
-    aws_iam_role_policy_attachment.node_ecr
+    aws_iam_role_policy_attachment.node_ecr,
+    aws_launch_template.nodes
   ]
 }
 
