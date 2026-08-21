@@ -55,9 +55,10 @@ module "demo_service_ecr" {
 module "github_oidc" {
   source = "../../modules/github-oidc"
 
-  github_org        = "muthukannanmuruga"
-  github_repository = "demo-service"
-  github_branch     = "main"
+  ecr_repository_arn = module.demo_service_ecr.repository_arn
+  github_org         = "muthukannanmuruga"
+  github_repository  = "demo-service"
+  github_branch      = "main"
 
   tags = {
     Environment = "dev"

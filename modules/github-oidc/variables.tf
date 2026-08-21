@@ -26,6 +26,11 @@ variable "github_branch" {
   default     = "main"
 }
 
+variable "ecr_repository_arn" {
+  description = "ARN of the ECR repository that GitHub Actions may push to."
+  type        = string
+}
+
 variable "tags" {
   description = "Additional tags applied to the OIDC provider."
   type        = map(string)

@@ -47,3 +47,31 @@ resource "aws_iam_role" "github_actions_ecr" {
     ManagedBy = "Terraform"
   })
 }
+
+data "aws_iam_policy_document" "ecr_push" {
+  statement {
+    effect    = "Allow"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
+
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:CompleteLayerUpload",
+      "ecr:InitiateLayerUpload",
+      "ecr:PutImage",
+      "ecr:UploadLayerPart"
+    ]
+
+    resources = [var.ecr_repository_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "ecr_push" {
+  name   = "ecr-push"
+  role   = aws_iam_role.github_actions_ecr.id
+  policy = data.aws_iam_policy_document.ecr_push.json
+}
