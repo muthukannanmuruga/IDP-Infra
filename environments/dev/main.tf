@@ -9,6 +9,24 @@ provider "aws" {
   }
 }
 
+data "aws_eks_cluster_auth" "this" {
+  name = module.eks.cluster_name
+}
+
+provider "kubernetes" {
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+  token                  = data.aws_eks_cluster_auth.this.token
+}
+
+provider "helm" {
+  kubernetes {
+    host                   = module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+    token                  = data.aws_eks_cluster_auth.this.token
+  }
+}
+
 module "vpc" {
   source = "../../modules/vpc"
 
@@ -64,4 +82,25 @@ module "github_oidc" {
     Environment = "dev"
     Project     = "IDP-Infra"
   }
+}
+
+resource "kubernetes_namespace" "argocd" {
+  metadata {
+    name = "argocd"
+  }
+
+  depends_on = [module.eks]
+}
+
+resource "helm_release" "argocd" {
+  name             = "argocd"
+  repository       = "https://argoproj.github.io/argo-helm"
+  chart            = "argo-cd"
+  version          = "8.5.5"
+  namespace        = kubernetes_namespace.argocd.metadata[0].name
+  create_namespace = false
+  wait             = true
+  timeout          = 900
+
+  depends_on = [kubernetes_namespace.argocd]
 }
