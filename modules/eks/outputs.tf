@@ -33,6 +33,11 @@ output "oidc_provider_arn" {
   value       = aws_iam_openid_connect_provider.cluster.arn
 }
 
+output "oidc_issuer" {
+  description = "OIDC issuer URL used by cluster service accounts."
+  value       = aws_eks_cluster.this.identity[0].oidc[0].issuer
+}
+
 output "node_group_name" {
   description = "Name of the EKS managed node group."
   value       = aws_eks_node_group.this.node_group_name

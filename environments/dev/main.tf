@@ -27,6 +27,73 @@ provider "helm" {
   }
 }
 
+data "aws_iam_policy_document" "cluster_autoscaler_assume_role" {
+  statement {
+    effect = "Allow"
+
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [module.eks.oidc_provider_arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.oidc_issuer, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.oidc_issuer, "https://", "")}:sub"
+      values   = ["system:serviceaccount:kube-system:cluster-autoscaler"]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "cluster_autoscaler" {
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "autoscaling:DescribeAutoScalingGroups",
+      "autoscaling:DescribeAutoScalingInstances",
+      "autoscaling:DescribeLaunchConfigurations",
+      "autoscaling:DescribeScalingActivities",
+      "autoscaling:DescribeTags",
+      "ec2:DescribeImages",
+      "ec2:DescribeInstanceTypes",
+      "ec2:DescribeLaunchTemplateVersions"
+    ]
+
+    resources = ["*"]
+  }
+
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "autoscaling:SetDesiredCapacity",
+      "autoscaling:TerminateInstanceInAutoScalingGroup",
+      "autoscaling:UpdateAutoScalingGroup"
+    ]
+
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role" "cluster_autoscaler" {
+  name               = "${var.cluster_name}-cluster-autoscaler"
+  assume_role_policy = data.aws_iam_policy_document.cluster_autoscaler_assume_role.json
+}
+
+resource "aws_iam_role_policy" "cluster_autoscaler" {
+  name   = "${var.cluster_name}-cluster-autoscaler"
+  role   = aws_iam_role.cluster_autoscaler.id
+  policy = data.aws_iam_policy_document.cluster_autoscaler.json
+}
+
 module "vpc" {
   source = "../../modules/vpc"
 
@@ -103,4 +170,57 @@ resource "helm_release" "argocd" {
   timeout          = 900
 
   depends_on = [kubernetes_namespace.argocd]
+}
+
+resource "helm_release" "cluster_autoscaler" {
+  name             = "cluster-autoscaler"
+  repository       = "https://kubernetes.github.io/autoscaler"
+  chart            = "cluster-autoscaler"
+  version          = "9.46.6"
+  namespace        = "kube-system"
+  create_namespace = false
+  wait             = true
+  timeout          = 600
+
+  set {
+    name  = "autoDiscovery.clusterName"
+    value = module.eks.cluster_name
+  }
+
+  set {
+    name  = "awsRegion"
+    value = var.aws_region
+  }
+
+  set {
+    name  = "cloudProvider"
+    value = "aws"
+  }
+
+  set {
+    name  = "rbac.serviceAccount.create"
+    value = "true"
+  }
+
+  set {
+    name  = "rbac.serviceAccount.name"
+    value = "cluster-autoscaler"
+  }
+
+  set {
+    name  = "rbac.serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    value = aws_iam_role.cluster_autoscaler.arn
+  }
+
+  set {
+    name  = "extraArgs.balance-similar-node-groups"
+    value = "true"
+  }
+
+  set {
+    name  = "extraArgs.expander"
+    value = "least-waste"
+  }
+
+  depends_on = [aws_iam_role_policy.cluster_autoscaler]
 }
