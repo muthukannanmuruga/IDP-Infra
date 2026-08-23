@@ -46,6 +46,10 @@ resource "aws_security_group" "cluster" {
   tags = merge(local.common_tags, {
     Name = "${var.name}-cluster-sg"
   })
+
+  lifecycle {
+    ignore_changes = [ingress, egress]
+  }
 }
 
 resource "aws_security_group" "nodes" {
@@ -72,6 +76,10 @@ resource "aws_security_group" "nodes" {
   tags = merge(local.common_tags, {
     Name = "${var.name}-node-sg"
   })
+
+  lifecycle {
+    ignore_changes = [ingress, egress]
+  }
 }
 
 resource "aws_security_group_rule" "cluster_from_nodes" {
