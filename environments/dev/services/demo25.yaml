@@ -1,0 +1,13 @@
+name: demo25
+github_owner: muthukannanmuruga
+github_repository: demo25
+github_branch: main
+aws_region: us-east-1
+environment: dev
+target_cluster: idp-dev-eks
+namespace: demo25
+replicas: 2
+cpu: 500m
+memory: 512Mi
+ingress: false
+hpa: false
