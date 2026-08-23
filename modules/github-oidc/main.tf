@@ -5,16 +5,12 @@ resource "aws_iam_openid_connect_provider" "github" {
 
   url             = var.oidc_url
   client_id_list  = [var.audience]
-  thumbprint_list = [data.tls_certificate.github.certificates[0].sha1_fingerprint]
+  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
 
   tags = merge(var.tags, {
     Name      = "github-actions"
     ManagedBy = "Terraform"
   })
-}
-
-data "tls_certificate" "github" {
-  url = var.oidc_url
 }
 
 data "aws_iam_policy_document" "github_actions_assume_role" {
@@ -41,7 +37,7 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["*"]
+      values   = ["repo:${var.github_org}@*/${var.github_repository}@*:ref:refs/heads/${var.github_branch}"]
     }
   }
 }

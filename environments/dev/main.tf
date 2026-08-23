@@ -143,6 +143,16 @@ locals {
   }
 }
 
+resource "aws_iam_openid_connect_provider" "github_actions" {
+  url             = "https://token.actions.githubusercontent.com"
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
+
+  tags = {
+    Name      = "github-actions"
+    ManagedBy = "Terraform"
+  }
+}
 
 module "service_ecr" {
   for_each = local.services
@@ -166,7 +176,8 @@ module "github_oidc" {
   github_org           = each.value.github_owner
   github_repository    = each.value.github_repository
   github_branch        = each.value.github_branch
-  create_oidc_provider = each.key == "demo-service"
+  create_oidc_provider = false
+  oidc_provider_arn    = aws_iam_openid_connect_provider.github_actions.arn
   role_name            = "github-actions-${each.key}-ecr"
 
   tags = {
