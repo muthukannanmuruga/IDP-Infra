@@ -20,7 +20,7 @@ terraform {
 
   cloud {
     organization = "MK_Internal_Developer_Platform"
-    #dummy-comment
+
     workspaces {
       name = "IDP-Infra"
     }
