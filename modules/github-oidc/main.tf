@@ -1,8 +1,10 @@
-data "tls_certificate" "github" {
+data "aws_iam_openid_connect_provider" "github" {
   url = var.oidc_url
 }
 
 resource "aws_iam_openid_connect_provider" "github" {
+  count = var.create_oidc_provider ? 1 : 0
+
   url             = var.oidc_url
   client_id_list  = [var.audience]
   thumbprint_list = [data.tls_certificate.github.certificates[0].sha1_fingerprint]
@@ -13,6 +15,10 @@ resource "aws_iam_openid_connect_provider" "github" {
   })
 }
 
+data "tls_certificate" "github" {
+  url = var.oidc_url
+}
+
 data "aws_iam_policy_document" "github_actions_assume_role" {
   statement {
     effect = "Allow"
@@ -21,7 +27,7 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
 
     principals {
       type        = "Federated"
-      identifiers = [aws_iam_openid_connect_provider.github.arn]
+      identifiers = [var.create_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : data.aws_iam_openid_connect_provider.github.arn]
     }
 
     condition {

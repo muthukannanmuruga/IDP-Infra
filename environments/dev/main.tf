@@ -139,8 +139,8 @@ moved {
 }
 
 moved {
-  from = module.github_oidc
-  to   = module.github_oidc["demo-service"]
+  from = module.github_oidc["demo-service"].aws_iam_openid_connect_provider.github
+  to   = module.github_oidc["demo-service"].aws_iam_openid_connect_provider.github[0]
 }
 
 module "service_ecr" {
@@ -161,11 +161,12 @@ module "github_oidc" {
   for_each = local.services
   source   = "../../modules/github-oidc"
 
-  ecr_repository_arn = module.service_ecr[each.key].repository_arn
-  github_org         = each.value.github_owner
-  github_repository  = each.value.github_repository
-  github_branch      = each.value.github_branch
-  role_name          = "github-actions-${each.key}-ecr"
+  ecr_repository_arn   = module.service_ecr[each.key].repository_arn
+  github_org           = each.value.github_owner
+  github_repository    = each.value.github_repository
+  github_branch        = each.value.github_branch
+  create_oidc_provider = each.key == "demo-service"
+  role_name            = "github-actions-${each.key}-ecr"
 
   tags = {
     Environment = "dev"

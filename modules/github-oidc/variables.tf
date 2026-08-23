@@ -41,3 +41,9 @@ variable "role_name" {
   description = "IAM role name for this repository."
   type        = string
 }
+
+variable "create_oidc_provider" {
+  description = "Whether this module instance owns the account-level GitHub OIDC provider."
+  type        = bool
+  default     = false
+}
