@@ -133,6 +133,16 @@ locals {
   }
 }
 
+moved {
+  from = module.demo_service_ecr
+  to   = module.service_ecr["demo-service"]
+}
+
+moved {
+  from = module.github_oidc
+  to   = module.github_oidc["demo-service"]
+}
+
 module "service_ecr" {
   for_each = local.services
   source   = "../../modules/ecr"
@@ -151,11 +161,11 @@ module "github_oidc" {
   for_each = local.services
   source   = "../../modules/github-oidc"
 
-  ecr_repository_arn   = module.service_ecr[each.key].repository_arn
-  github_org           = each.value.github_owner
-  github_repository    = each.value.github_repository
-  github_branch        = each.value.github_branch
-  role_name            = "github-actions-${each.key}-ecr"
+  ecr_repository_arn = module.service_ecr[each.key].repository_arn
+  github_org         = each.value.github_owner
+  github_repository  = each.value.github_repository
+  github_branch      = each.value.github_branch
+  role_name          = "github-actions-${each.key}-ecr"
 
   tags = {
     Environment = "dev"
