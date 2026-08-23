@@ -47,3 +47,9 @@ variable "create_oidc_provider" {
   type        = bool
   default     = false
 }
+
+variable "oidc_provider_arn" {
+  description = "ARN of the existing GitHub Actions OIDC provider. Only required when this module instance does not create the provider itself."
+  type        = string
+  default     = null
+}

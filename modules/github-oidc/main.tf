@@ -1,6 +1,4 @@
-data "aws_iam_openid_connect_provider" "github" {
-  url = var.oidc_url
-}
+data "aws_caller_identity" "current" {}
 
 resource "aws_iam_openid_connect_provider" "github" {
   count = var.create_oidc_provider ? 1 : 0
@@ -26,8 +24,12 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
     actions = ["sts:AssumeRoleWithWebIdentity"]
 
     principals {
-      type        = "Federated"
-      identifiers = [var.create_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : data.aws_iam_openid_connect_provider.github.arn]
+      type = "Federated"
+      identifiers = [
+        var.create_oidc_provider
+          ? aws_iam_openid_connect_provider.github[0].arn
+          : (var.oidc_provider_arn != null ? var.oidc_provider_arn : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${replace(var.oidc_url, "https://", "")}")
+      ]
     }
 
     condition {

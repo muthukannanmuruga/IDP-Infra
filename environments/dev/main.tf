@@ -133,15 +133,6 @@ locals {
   }
 }
 
-moved {
-  from = module.demo_service_ecr
-  to   = module.service_ecr["demo-service"]
-}
-
-moved {
-  from = module.github_oidc["demo-service"].aws_iam_openid_connect_provider.github
-  to   = module.github_oidc["demo-service"].aws_iam_openid_connect_provider.github[0]
-}
 
 module "service_ecr" {
   for_each = local.services
@@ -182,29 +173,18 @@ resource "kubernetes_namespace" "argocd" {
   depends_on = [module.eks]
 }
 
-removed {
-  from = helm_release.argocd
+resource "helm_release" "argocd" {
+  name             = "argocd"
+  repository       = "https://argoproj.github.io/argo-helm"
+  chart            = "argo-cd"
+  version          = "8.5.5"
+  namespace        = kubernetes_namespace.argocd.metadata[0].name
+  create_namespace = false
+  wait             = true
+  timeout          = 900
 
-  lifecycle {
-    destroy = false
-  }
+  depends_on = [kubernetes_namespace.argocd]
 }
-
-# Argo CD is installed in the cluster but temporarily unmanaged because Helm
-# reported an operation already in progress. Uncomment this resource when
-# Terraform should manage or recreate the release again.
-# resource "helm_release" "argocd" {
-#   name             = "argocd"
-#   repository       = "https://argoproj.github.io/argo-helm"
-#   chart            = "argo-cd"
-#   version          = "8.5.5"
-#   namespace        = kubernetes_namespace.argocd.metadata[0].name
-#   create_namespace = false
-#   wait             = true
-#   timeout          = 900
-#
-#   depends_on = [kubernetes_namespace.argocd]
-# }
 
 resource "helm_release" "cluster_autoscaler" {
   name             = "cluster-autoscaler"
