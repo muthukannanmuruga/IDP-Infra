@@ -33,13 +33,13 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_org}@*/*:ref:refs/heads/${var.github_branch}"]
+      values   = ["repo:muthukannanmuruga@*/${var.github_repository}@*:ref:refs/heads/${var.github_branch}"]
     }
   }
 }
 
 resource "aws_iam_role" "github_actions_ecr" {
-  name               = "github-actions-ecr-role"
+  name               = var.role_name
   assume_role_policy = data.aws_iam_policy_document.github_actions_assume_role.json
 
   tags = merge(var.tags, {

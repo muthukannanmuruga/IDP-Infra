@@ -125,25 +125,37 @@ module "eks" {
   }
 }
 
-module "demo_service_ecr" {
-  source = "../../modules/ecr"
+locals {
+  service_files = fileset(path.module, "services/*.yaml")
+  services = {
+    for file_name in local.service_files :
+    yamldecode(file("${path.module}/${file_name}")).name => yamldecode(file("${path.module}/${file_name}"))
+  }
+}
 
-  repository_name = "demo-service"
+module "service_ecr" {
+  for_each = local.services
+  source   = "../../modules/ecr"
+
+  repository_name      = each.value.name
+  image_tag_mutability = "IMMUTABLE"
 
   tags = {
     Environment = "dev"
     Project     = "IDP-Infra"
-    Service     = "demo-service"
+    Service     = each.value.name
   }
 }
 
 module "github_oidc" {
-  source = "../../modules/github-oidc"
+  for_each = local.services
+  source   = "../../modules/github-oidc"
 
-  ecr_repository_arn = module.demo_service_ecr.repository_arn
-  github_org         = "muthukannanmuruga"
-  github_repository  = "demo-service"
-  github_branch      = "main"
+  ecr_repository_arn   = module.service_ecr[each.key].repository_arn
+  github_org           = each.value.github_owner
+  github_repository    = each.value.github_repository
+  github_branch        = each.value.github_branch
+  role_name            = "github-actions-${each.key}-ecr"
 
   tags = {
     Environment = "dev"
