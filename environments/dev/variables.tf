@@ -19,7 +19,7 @@ variable "cluster_name" {
 variable "node_instance_types" {
   description = "EC2 instance types for the development EKS node group."
   type        = list(string)
-  default     = ["t3.medium"]
+  default     = ["t3.large"]
 }
 
 variable "node_min_size" {
