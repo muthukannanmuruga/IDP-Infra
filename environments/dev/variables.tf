@@ -31,7 +31,7 @@ variable "node_min_size" {
 variable "node_desired_size" {
   description = "Desired number of development EKS nodes."
   type        = number
-  default     = 2
+  default     = 3
 }
 
 variable "node_max_size" {
