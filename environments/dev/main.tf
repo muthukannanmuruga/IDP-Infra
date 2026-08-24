@@ -259,3 +259,255 @@ resource "helm_release" "cluster_autoscaler" {
 
   depends_on = [aws_iam_role_policy.cluster_autoscaler]
 }
+
+# --- Observability platform: Prometheus + OpenTelemetry Collector ---------
+
+resource "kubernetes_namespace" "monitoring" {
+  metadata {
+    name = "monitoring"
+  }
+
+  depends_on = [module.eks]
+}
+
+resource "helm_release" "kube_prometheus_stack" {
+  name             = "kube-prometheus-stack"
+  repository       = "https://prometheus-community.github.io/helm-charts"
+  chart            = "kube-prometheus-stack"
+  version          = "65.5.1"
+  namespace        = kubernetes_namespace.monitoring.metadata[0].name
+  create_namespace = false
+  wait             = true
+  timeout          = 900
+
+  values = [
+    yamlencode({
+      grafana = {
+        sidecar = {
+          dashboards = {
+            enabled         = true
+            label           = "grafana_dashboard"
+            searchNamespace = "ALL"
+          }
+        }
+      }
+      prometheus = {
+        prometheusSpec = {
+          serviceMonitorSelectorNilUsesHelmValues = false
+          podMonitorSelectorNilUsesHelmValues     = false
+        }
+      }
+    })
+  ]
+
+  depends_on = [kubernetes_namespace.monitoring]
+}
+
+resource "helm_release" "otel_collector" {
+  name             = "otel-collector"
+  repository       = "https://open-telemetry.github.io/opentelemetry-helm-charts"
+  chart            = "opentelemetry-collector"
+  version          = "0.111.1"
+  namespace        = kubernetes_namespace.monitoring.metadata[0].name
+  create_namespace = false
+  wait             = true
+  timeout          = 600
+
+  values = [
+    yamlencode({
+      mode = "deployment"
+      image = {
+        repository = "otel/opentelemetry-collector-contrib"
+      }
+      config = {
+        receivers = {
+          otlp = {
+            protocols = {
+              grpc = { endpoint = "0.0.0.0:4317" }
+              http = { endpoint = "0.0.0.0:4318" }
+            }
+          }
+        }
+        processors = {
+          memory_limiter = {
+            check_interval         = "5s"
+            limit_percentage       = 80
+            spike_limit_percentage = 25
+          }
+          batch = {}
+        }
+        exporters = {
+          prometheus = {
+            endpoint = "0.0.0.0:8889"
+            resource_to_telemetry_conversion = {
+              enabled = true
+            }
+          }
+        }
+        service = {
+          pipelines = {
+            traces = null
+            logs   = null
+            metrics = {
+              receivers  = ["otlp"]
+              processors = ["memory_limiter", "batch"]
+              exporters  = ["prometheus"]
+            }
+          }
+        }
+      }
+      ports = {
+        otlp = {
+          enabled       = true
+          containerPort = 4317
+          servicePort   = 4317
+          protocol      = "TCP"
+        }
+        "otlp-http" = {
+          enabled       = true
+          containerPort = 4318
+          servicePort   = 4318
+          protocol      = "TCP"
+        }
+        prometheus = {
+          enabled       = true
+          containerPort = 8889
+          servicePort   = 8889
+          protocol      = "TCP"
+        }
+        "jaeger-compact" = { enabled = false }
+        "jaeger-thrift"  = { enabled = false }
+        "jaeger-grpc"    = { enabled = false }
+        zipkin           = { enabled = false }
+      }
+      service = {
+        type = "ClusterIP"
+      }
+      serviceMonitor = {
+        enabled = true
+      }
+      resources = {
+        limits = {
+          cpu    = "500m"
+          memory = "512Mi"
+        }
+      }
+    })
+  ]
+
+  depends_on = [helm_release.kube_prometheus_stack]
+}
+
+resource "kubernetes_config_map" "grafana_dashboard_java_service" {
+  metadata {
+    name      = "grafana-dashboard-java-service"
+    namespace = kubernetes_namespace.monitoring.metadata[0].name
+    labels = {
+      grafana_dashboard = "1"
+    }
+  }
+
+  data = {
+    "java-service.json" = file("${path.module}/dashboards/java-service.json")
+  }
+
+  depends_on = [helm_release.kube_prometheus_stack]
+}
+
+# --- Ingress: AWS Load Balancer Controller + Metrics Server ---------------
+
+data "aws_iam_policy_document" "alb_controller_assume_role" {
+  statement {
+    effect = "Allow"
+
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [module.eks.oidc_provider_arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.oidc_issuer, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.oidc_issuer, "https://", "")}:sub"
+      values   = ["system:serviceaccount:kube-system:aws-load-balancer-controller"]
+    }
+  }
+}
+
+resource "aws_iam_role" "alb_controller" {
+  name               = "${var.cluster_name}-alb-controller"
+  assume_role_policy = data.aws_iam_policy_document.alb_controller_assume_role.json
+}
+
+resource "aws_iam_policy" "alb_controller" {
+  name   = "${var.cluster_name}-alb-controller"
+  policy = file("${path.module}/policies/aws-load-balancer-controller-iam-policy.json")
+}
+
+resource "aws_iam_role_policy_attachment" "alb_controller" {
+  role       = aws_iam_role.alb_controller.name
+  policy_arn = aws_iam_policy.alb_controller.arn
+}
+
+resource "helm_release" "aws_load_balancer_controller" {
+  name             = "aws-load-balancer-controller"
+  repository       = "https://aws.github.io/eks-charts"
+  chart            = "aws-load-balancer-controller"
+  version          = "1.11.0"
+  namespace        = "kube-system"
+  create_namespace = false
+  wait             = true
+  timeout          = 600
+
+  set {
+    name  = "clusterName"
+    value = module.eks.cluster_name
+  }
+
+  set {
+    name  = "region"
+    value = var.aws_region
+  }
+
+  set {
+    name  = "vpcId"
+    value = module.vpc.vpc_id
+  }
+
+  set {
+    name  = "serviceAccount.create"
+    value = "true"
+  }
+
+  set {
+    name  = "serviceAccount.name"
+    value = "aws-load-balancer-controller"
+  }
+
+  set {
+    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    value = aws_iam_role.alb_controller.arn
+  }
+
+  depends_on = [aws_iam_role_policy_attachment.alb_controller]
+}
+
+resource "helm_release" "metrics_server" {
+  name             = "metrics-server"
+  repository       = "https://kubernetes-sigs.github.io/metrics-server/"
+  chart            = "metrics-server"
+  version          = "3.12.2"
+  namespace        = "kube-system"
+  create_namespace = false
+  wait             = true
+  timeout          = 300
+
+  depends_on = [module.eks]
+}
