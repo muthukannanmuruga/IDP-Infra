@@ -1,0 +1,21 @@
+name: demo40
+github_owner: muthukannanmuruga
+github_repository: demo40
+github_branch: main
+aws_region: us-east-1
+environment: dev
+target_cluster: idp-dev-eks
+namespace: demo40
+replicas: 2
+cpu: 500m
+memory: 512Mi
+ingress: true
+hpa: true
+alb_scheme: internet-facing
+ingress_host: 
+ingress_path: /
+ingress_service_port: 80
+hpa_min_replicas: 2
+hpa_max_replicas: 10
+hpa_cpu_target: 70
+hpa_memory_target: 80
