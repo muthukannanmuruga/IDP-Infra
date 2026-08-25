@@ -216,6 +216,11 @@ resource "aws_eks_node_group" "this" {
     aws_iam_role_policy_attachment.node_ecr,
     aws_launch_template.nodes
   ]
+
+  # Cluster Autoscaler adjusts desired_size at runtime; don't fight it on every apply.
+  lifecycle {
+    ignore_changes = [scaling_config[0].desired_size]
+  }
 }
 
 data "tls_certificate" "cluster_oidc" {
