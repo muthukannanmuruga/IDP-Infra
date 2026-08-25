@@ -2,7 +2,7 @@
   "title": "IDP Java Service (OpenTelemetry)",
   "uid": "idp-java-service",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "editable": true,
   "timezone": "browser",
   "time": {
@@ -68,14 +68,16 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps"
+          "unit": "reqps",
+          "min": 0
         },
         "overrides": []
       }
     },
     {
       "id": 2,
-      "title": "Error rate (5xx)",
+      "title": "HTTP 5xx Error Rate",
+      "description": "Percentage of application HTTP requests returning 5xx responses.",
       "type": "timeseries",
       "gridPos": {
         "h": 8,
@@ -89,13 +91,15 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=~\"$service_name\", deployment_environment=~\"$environment\", http_response_status_code=~\"5..\"}[$__rate_interval])) by (service_name)",
+          "expr": "100 * sum(rate(http_server_request_duration_seconds_count{service_name=~\"$service_name\", deployment_environment=~\"$environment\", http_response_status_code=~\"5..\"}[$__rate_interval])) by (service_name) / sum(rate(http_server_request_duration_seconds_count{service_name=~\"$service_name\", deployment_environment=~\"$environment\"}[$__rate_interval])) by (service_name)",
           "legendFormat": "{{service_name}}"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps"
+          "unit": "percent",
+          "min": 0,
+          "max": 100
         },
         "overrides": []
       }
@@ -130,14 +134,16 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "s"
+          "unit": "s",
+          "min": 0
         },
         "overrides": []
       }
     },
     {
       "id": 4,
-      "title": "JVM memory usage",
+      "title": "JVM Memory Usage",
+      "description": "Committed JVM memory grouped by heap and non-heap memory type.",
       "type": "timeseries",
       "gridPos": {
         "h": 8,
@@ -157,14 +163,16 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "bytes"
+          "unit": "bytes",
+          "min": 0
         },
         "overrides": []
       }
     },
     {
       "id": 5,
-      "title": "JVM CPU utilization",
+      "title": "JVM CPU Utilization",
+      "description": "Recent JVM CPU utilization reported by the OpenTelemetry Java instrumentation.",
       "type": "timeseries",
       "gridPos": {
         "h": 8,
@@ -193,7 +201,8 @@
     },
     {
       "id": 6,
-      "title": "GC activity",
+      "title": "GC Activity",
+      "description": "JVM garbage collection time percentage and GC event rate.",
       "type": "timeseries",
       "gridPos": {
         "h": 8,
@@ -207,17 +216,20 @@
       },
       "targets": [
         {
+          "refId": "A",
           "expr": "100 * sum(rate(jvm_gc_duration_seconds_sum{service_name=~\"$service_name\", deployment_environment=~\"$environment\"}[$__rate_interval])) by (service_name)",
           "legendFormat": "{{service_name}} GC time %"
         },
         {
+          "refId": "B",
           "expr": "sum(rate(jvm_gc_duration_seconds_count{service_name=~\"$service_name\", deployment_environment=~\"$environment\"}[$__rate_interval])) by (service_name)",
           "legendFormat": "{{service_name}} GC events/sec"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short"
+          "unit": "short",
+          "min": 0
         },
         "overrides": [
           {
