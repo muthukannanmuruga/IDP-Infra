@@ -2,29 +2,40 @@
   "title": "IDP Java Service (OpenTelemetry)",
   "uid": "idp-java-service",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "editable": true,
   "timezone": "browser",
-  "time": { "from": "now-1h", "to": "now" },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
   "refresh": "30s",
   "templating": {
     "list": [
       {
         "name": "service_name",
         "type": "query",
-        "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
         "query": "label_values(http_server_request_duration_seconds_count, service_name)",
         "refresh": 2,
         "includeAll": true,
+        "allValue": ".*",
         "multi": true
       },
       {
         "name": "environment",
         "type": "query",
-        "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
         "query": "label_values(http_server_request_duration_seconds_count, deployment_environment)",
         "refresh": 2,
         "includeAll": true,
+        "allValue": ".*",
         "multi": true
       },
       {
@@ -39,87 +50,190 @@
       "id": 1,
       "title": "Request rate",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "targets": [
         {
-          "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=~\"$service_name\", deployment_environment=~\"$environment\"}[5m])) by (service_name)",
+          "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=~\"$service_name\", deployment_environment=~\"$environment\"}[$__rate_interval])) by (service_name)",
           "legendFormat": "{{service_name}}"
         }
-      ]
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 2,
       "title": "Error rate (5xx)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "targets": [
         {
-          "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=~\"$service_name\", deployment_environment=~\"$environment\", http_response_status_code=~\"5..\"}[5m])) by (service_name)",
+          "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=~\"$service_name\", deployment_environment=~\"$environment\", http_response_status_code=~\"5..\"}[$__rate_interval])) by (service_name)",
           "legendFormat": "{{service_name}}"
         }
-      ]
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 3,
       "title": "Request latency (p50 / p95 / p99)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, sum(rate(http_server_request_duration_seconds_bucket{service_name=~\"$service_name\", deployment_environment=~\"$environment\"}[5m])) by (le, service_name))",
+          "expr": "histogram_quantile(0.50, sum(rate(http_server_request_duration_seconds_bucket{service_name=~\"$service_name\", deployment_environment=~\"$environment\"}[$__rate_interval])) by (le, service_name))",
           "legendFormat": "p50 {{service_name}}"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{service_name=~\"$service_name\", deployment_environment=~\"$environment\"}[5m])) by (le, service_name))",
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{service_name=~\"$service_name\", deployment_environment=~\"$environment\"}[$__rate_interval])) by (le, service_name))",
           "legendFormat": "p95 {{service_name}}"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(http_server_request_duration_seconds_bucket{service_name=~\"$service_name\", deployment_environment=~\"$environment\"}[5m])) by (le, service_name))",
+          "expr": "histogram_quantile(0.99, sum(rate(http_server_request_duration_seconds_bucket{service_name=~\"$service_name\", deployment_environment=~\"$environment\"}[$__rate_interval])) by (le, service_name))",
           "legendFormat": "p99 {{service_name}}"
         }
-      ]
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 4,
       "title": "JVM memory usage",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "targets": [
         {
-          "expr": "sum(process_runtime_jvm_memory_usage_bytes{service_name=~\"$service_name\", deployment_environment=~\"$environment\"}) by (service_name, type)",
-          "legendFormat": "{{service_name}} {{type}}"
+          "expr": "sum(jvm_memory_committed_bytes{service_name=~\"$service_name\", deployment_environment=~\"$environment\"}) by (service_name, jvm_memory_type)",
+          "legendFormat": "{{service_name}} {{jvm_memory_type}}"
         }
-      ]
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 5,
       "title": "JVM CPU utilization",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "targets": [
         {
-          "expr": "avg(process_runtime_jvm_cpu_utilization_ratio{service_name=~\"$service_name\", deployment_environment=~\"$environment\"}) by (service_name)",
+          "expr": "100 * avg(jvm_cpu_recent_utilization_ratio{service_name=~\"$service_name\", deployment_environment=~\"$environment\"}) by (service_name)",
           "legendFormat": "{{service_name}}"
         }
-      ]
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      }
     },
     {
       "id": 6,
       "title": "GC activity",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "targets": [
         {
-          "expr": "sum(rate(process_runtime_jvm_gc_duration_seconds_sum{service_name=~\"$service_name\", deployment_environment=~\"$environment\"}[5m])) by (service_name)",
-          "legendFormat": "{{service_name}}"
+          "expr": "100 * sum(rate(jvm_gc_duration_seconds_sum{service_name=~\"$service_name\", deployment_environment=~\"$environment\"}[$__rate_interval])) by (service_name)",
+          "legendFormat": "{{service_name}} GC time %"
+        },
+        {
+          "expr": "sum(rate(jvm_gc_duration_seconds_count{service_name=~\"$service_name\", deployment_environment=~\"$environment\"}[$__rate_interval])) by (service_name)",
+          "legendFormat": "{{service_name}} GC events/sec"
         }
-      ]
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "demo45 GC time %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }
