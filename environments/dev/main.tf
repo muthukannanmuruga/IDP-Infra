@@ -386,6 +386,9 @@ resource "helm_release" "otel_collector" {
       }
       serviceMonitor = {
         enabled = true
+        metricsEndpoints = [
+          { port = "prometheus" }
+        ]
       }
       resources = {
         limits = {
