@@ -315,7 +315,8 @@ resource "helm_release" "otel_collector" {
 
   values = [
     yamlencode({
-      mode = "deployment"
+      mode             = "deployment"
+      fullnameOverride = "otel-collector"
       image = {
         repository = "otel/opentelemetry-collector-contrib"
       }
